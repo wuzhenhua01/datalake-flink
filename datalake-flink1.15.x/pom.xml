@@ -10,4 +10,8 @@
         <version>1.0.0</version>
     </parent>
     <artifactId>datalake-flink1.15.x</artifactId>
+
+    <properties>
+        <flink.version>1.15</flink.version>
+    </properties>
 </project>
