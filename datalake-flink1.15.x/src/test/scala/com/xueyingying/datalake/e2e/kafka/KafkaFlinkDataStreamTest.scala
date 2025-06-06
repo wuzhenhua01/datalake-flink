@@ -1,12 +1,16 @@
 package com.xueyingying.datalake.e2e.kafka
 
 import java.util.concurrent.TimeUnit
+import java.util.regex.Pattern
 import java.util.{Properties, UUID}
 
 import com.xueyingying.datalake.FlinkSuiteBase
-import org.apache.flink.api.common.serialization.SerializationSchema
+import org.apache.flink.api.common.eventtime.{Watermark, WatermarkStrategy}
+import org.apache.flink.api.common.serialization.{SerializationSchema, SimpleStringSchema}
 import org.apache.flink.connector.base.DeliveryGuarantee
 import org.apache.flink.connector.kafka.sink.{KafkaRecordSerializationSchema, KafkaSink, TopicSelector}
+import org.apache.flink.connector.kafka.source.KafkaSource
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
 import org.apache.flink.streaming.api.scala.createTypeInformation
 import org.apache.flink.streaming.connectors.kafka.partitioner.FlinkKafkaPartitioner
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -58,6 +62,15 @@ class KafkaFlinkDataStreamTest extends FlinkSuiteBase {
   }
 
   "kafka" should "read" in {
+    val source = KafkaSource.builder[String]
+      .setBootstrapServers("localhost:9092")
+      .setTopics("test")
+      .setGroupId("test")
+      .setStartingOffsets(OffsetsInitializer.latest())
+      .setValueOnlyDeserializer(new SimpleStringSchema())
+      .build
 
+    env.fromSource(source, WatermarkStrategy.noWatermarks[String], "kafkaSource").print
+    env.execute
   }
 }

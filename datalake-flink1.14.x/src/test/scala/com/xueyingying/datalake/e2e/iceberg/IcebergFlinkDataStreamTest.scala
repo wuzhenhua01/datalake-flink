@@ -19,8 +19,6 @@ import scala.collection.JavaConversions.seqAsJavaList
  */
 class IcebergFlinkDataStreamTest extends FlinkSuiteBase {
   "iceberg" should "write" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
     val rowDataDataStream: DataStream[RowData] = rowStream.flatMap[RowData] { (data: Row, out: Collector[RowData]) =>
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)

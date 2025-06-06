@@ -6,8 +6,10 @@ import com.xueyingying.datalake.FlinkSuiteBase
 import org.apache.flink.api.common.functions.MapFunction
 import org.apache.flink.runtime.state.{FunctionInitializationContext, FunctionSnapshotContext}
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction
+import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.createTypeInformation
 import org.apache.flink.types.Row
+import org.apache.flink.util.Collector
 
 /**
  * @author cx330.1000ly@gmail.com
@@ -16,8 +18,15 @@ import org.apache.flink.types.Row
  */
 class FlinkCheckpointTest extends FlinkSuiteBase {
   "a" should "pass" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    tabEnv.toDataStream(tableResult).map(new M()).print
+    rowStream.map(new M())
+      .process(new ProcessFunction[String, String]() {
+        override def processElement(value: String, ctx: ProcessFunction[String, String]#Context, out: Collector[String]): Unit = {
+          if (ctx.timerService().currentProcessingTime() / 1000 == 0) {
+            println(ctx.timerService().currentProcessingTime())
+          }
+        }
+      })
+      .print
     env.getCheckpointConfig.setTolerableCheckpointFailureNumber(10)
     env.execute()
   }
@@ -25,7 +34,7 @@ class FlinkCheckpointTest extends FlinkSuiteBase {
 
 class M extends MapFunction[Row, String] with CheckpointedFunction {
   override def map(value: Row): String = {
-    ""
+    "aaa"
   }
 
   override def snapshotState(context: FunctionSnapshotContext): Unit = {

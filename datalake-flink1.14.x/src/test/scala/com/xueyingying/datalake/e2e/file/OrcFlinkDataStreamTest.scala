@@ -9,13 +9,12 @@ import org.apache.flink.core.fs.Path
 import org.apache.flink.core.io.SimpleVersionedSerializer
 import org.apache.flink.orc.vector.Vectorizer
 import org.apache.flink.orc.writer.OrcBulkWriterFactory
+import org.apache.flink.runtime.util.HadoopUtils
 import org.apache.flink.streaming.api.functions.sink.filesystem.BucketAssigner
 import org.apache.flink.streaming.api.functions.sink.filesystem.bucketassigners.SimpleVersionedStringSerializer
-import org.apache.flink.streaming.api.scala.DataStream
 import org.apache.flink.table.filesystem.RowPartitionComputer
 import org.apache.flink.table.utils.PartitionPathUtils
 import org.apache.flink.types.Row
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hive.ql.exec.vector.{BytesColumnVector, LongColumnVector, VectorizedRowBatch}
 import org.apache.orc.TypeDescription
 
@@ -28,9 +27,6 @@ import scala.collection.JavaConversions.propertiesAsScalaMap
  */
 class OrcFlinkDataStreamTest extends FlinkSuiteBase {
   "orc" should "write" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val dataStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
-
     val schema: TypeDescription = TypeDescription.createStruct()
       .addField("id", TypeDescription.createLong())
       .addField("content", TypeDescription.createString())
@@ -45,7 +41,7 @@ class OrcFlinkDataStreamTest extends FlinkSuiteBase {
           idColVector.vector(batch.size + 1) = element.getField(0).asInstanceOf[Long]
           contentColVector.setVal(batch.size + 1, element.getField(1).asInstanceOf[String].getBytes(StandardCharsets.UTF_8))
         }
-      }, writerProperties, new Configuration()))
+      }, writerProperties, HadoopUtils.getHadoopConfiguration(flinkConf)))
       .withBucketAssigner(new BucketAssigner[Row, String] {
         val computer = new RowPartitionComputer("000000", Array("id", "content"), Array("id"))
 
@@ -55,14 +51,8 @@ class OrcFlinkDataStreamTest extends FlinkSuiteBase {
       })
       .build()
 
-    dataStream.sinkTo(sink)
+    rowStream.sinkTo(sink)
 
     env.execute
-  }
-
-  "parquet" should "write" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val dataStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
-
   }
 }

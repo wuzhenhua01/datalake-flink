@@ -12,6 +12,54 @@
     <artifactId>datalake-flink1.15.x</artifactId>
 
     <properties>
-        <flink.version>1.15</flink.version>
+        <scala.binary.version>2.12</scala.binary.version>
+
+        <avro.version>1.11.4</avro.version>
+        <flink.major.version>1.15</flink.major.version>
+        <hudi.version>1.0.2</hudi.version>
+        <jackson.version>2.15.2</jackson.version>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-runtime-web</artifactId>
+            <version>${flink.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-metrics-dropwizard</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-connector-kafka</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hudi</groupId>
+            <artifactId>hudi-flink</artifactId>
+            <version>${hudi.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hudi</groupId>
+                    <artifactId>hudi-flink1.20.x</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hudi</groupId>
+            <artifactId>hudi-flink${flink.major.version}.x</artifactId>
+            <version>${hudi.version}</version>
+        </dependency>
+    </dependencies>
 </project>

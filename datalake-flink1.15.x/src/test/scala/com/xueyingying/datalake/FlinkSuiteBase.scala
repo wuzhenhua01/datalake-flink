@@ -41,11 +41,11 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
     flinkConf.set(StateBackendOptions.LATENCY_TRACK_ENABLED, Boolean.box(true))
     flinkConf.set(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH, Boolean.box(true))
 
-    enableSSL(flinkConf)
     enableMetrics(flinkConf)
     // enableHistory(flinkConf)
 
-    env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(flinkConf)
+    env = StreamExecutionEnvironment.createLocalEnvironment(2, flinkConf)
+    env.disableOperatorChaining
 
     enableCheckpoint(env)
 
@@ -85,13 +85,11 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
   }
 
   def enableCheckpoint(env: StreamExecutionEnvironment): Unit = {
-    // val stateBackend = new EmbeddedRocksDBStateBackend(true)
     val stateBackend = new HashMapStateBackend()
     env.setStateBackend(stateBackend)
     env.enableCheckpointing(10000, CheckpointingMode.EXACTLY_ONCE)
-    // env.getCheckpointConfig.setCheckpointStorage("hdfs://hacluster/tmp/flink/ckp")
     env.getCheckpointConfig.setCheckpointTimeout(30000)
-    env.getCheckpointConfig.enableExternalizedCheckpoints(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
+    env.getCheckpointConfig.setExternalizedCheckpointCleanup(ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION)
   }
 
   def enableMetrics(flinkConfig: Configuration): Unit = {

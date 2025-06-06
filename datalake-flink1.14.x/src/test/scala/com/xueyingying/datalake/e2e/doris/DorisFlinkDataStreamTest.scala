@@ -1,10 +1,10 @@
 package com.xueyingying.datalake.e2e.doris
 
 import com.xueyingying.datalake.FlinkSuiteBase
-import org.apache.doris.flink.cfg.{DorisExecutionOptions, DorisOptions, DorisReadOptions}
+import org.apache.doris.flink.cfg.{DorisExecutionOptions, DorisReadOptions}
 import org.apache.doris.flink.sink.DorisSink
 import org.apache.doris.flink.sink.writer.RowDataSerializer
-import org.apache.flink.streaming.api.scala.{DataStream, createTypeInformation}
+import org.apache.flink.streaming.api.scala.createTypeInformation
 import org.apache.flink.table.data.{GenericRowData, RowData}
 
 /**
@@ -26,18 +26,18 @@ class DorisFlinkDataStreamTest extends FlinkSuiteBase {
       .setCheckInterval(0)
       .setMaxRetries(3)
       .build()
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[RowData] = tabEnv.toDataStream(tableResult)
-      .map(_ => new GenericRowData(1))
-    rowStream.sinkTo(DorisSink.builder()
-      .setSerializer(RowDataSerializer.builder()
-        .setFieldNames(Seq().toArray)
-        .setFieldType(Seq().toArray)
+
+    rowStream
+      .map(_ => new GenericRowData(1).asInstanceOf[RowData])
+      .sinkTo(DorisSink.builder()
+        .setSerializer(RowDataSerializer.builder()
+          .setFieldNames(Seq().toArray)
+          .setFieldType(Seq().toArray)
+          .build())
+        .setDorisReadOptions(DorisReadOptions.defaults())
+        .setDorisExecutionOptions(executionOptions)
+        .setDorisOptions(dorisOptions)
         .build())
-      .setDorisReadOptions(DorisReadOptions.defaults())
-      .setDorisExecutionOptions(executionOptions)
-      .setDorisOptions(dorisOptions)
-      .build())
     env.execute()
   }
 

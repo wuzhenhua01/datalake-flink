@@ -1,10 +1,10 @@
 package com.xueyingying.datalake.e2e.cdc
 
+import com.fasterxml.jackson.databind.{DeserializationFeature, ObjectMapper, SerializationFeature}
 import com.ververica.cdc.connectors.mysql.source.MySqlSource
 import com.ververica.cdc.connectors.mysql.table.StartupOptions
 import com.ververica.cdc.debezium.JsonDebeziumDeserializationSchema
 import com.xueyingying.datalake.FlinkSuiteBase
-import com.xueyingying.datalake.utils.JsonUtil
 import io.debezium.data.Envelope
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.state.{MapStateDescriptor, ReadOnlyBroadcastState}
@@ -21,9 +21,12 @@ import scala.collection.JavaConversions.iterableAsScalaIterable
  * @since 2023-10-12
  */
 class MySQLCDCFlinkDataStreamTest extends FlinkSuiteBase {
+  val mapper = new ObjectMapper
+  mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+  mapper.configure(SerializationFeature.INDENT_OUTPUT, false)
+
   "mysql streaming connector" should "work" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val dataStream: DataStream[(Long, String)] = tabEnv.toDataStream(tableResult).map(row => (row.getField(0).asInstanceOf[Long], row.getField(1).asInstanceOf[String]))
+    val dataStream: DataStream[(Long, String)] = rowStream.map(row => (row.getField(0).asInstanceOf[Long], row.getField(1).asInstanceOf[String]))
 
     val mysqlSource = MySqlSource.builder()
       .hostname("xueyingying.com")
@@ -36,7 +39,7 @@ class MySQLCDCFlinkDataStreamTest extends FlinkSuiteBase {
       .closeIdleReaders(true)
       .startupOptions(StartupOptions.initial())
       .build()
-    val cellKeyData = env.fromSource(mysqlSource, WatermarkStrategy.noWatermarks(), "mysql").map(JsonUtil.toAnyMap(_))
+    val cellKeyData = env.fromSource(mysqlSource, WatermarkStrategy.noWatermarks(), "mysql").map(mapper.readValue(_, classOf[Map[String, Any]]))
     val cellKeyStateDescriptor = new MapStateDescriptor[String, String]("test", BasicTypeInfo.STRING_TYPE_INFO, BasicTypeInfo.STRING_TYPE_INFO)
     val cellKeyBroadcast = cellKeyData.broadcast(cellKeyStateDescriptor)
 

@@ -17,9 +17,6 @@ import scala.collection.breakOut
  */
 class FlinkShuntDataStreamTest extends FlinkSuiteBase {
   "shunt" should "work" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
-
     val tagMap: Map[Int, OutputTag[String]] = (for (i <- 0 to 5) yield i -> OutputTag[String](i.toString)) (breakOut)
     val tagStream = rowStream.process(new ProcessFunction[Row, String] {
       override def processElement(data: Row, ctx: ProcessFunction[Row, String]#Context, out: Collector[String]): Unit = {

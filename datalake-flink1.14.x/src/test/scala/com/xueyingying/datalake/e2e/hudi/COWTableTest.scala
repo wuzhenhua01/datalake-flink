@@ -1,11 +1,12 @@
 package com.xueyingying.datalake.e2e.hudi
 
-import java.time.{Instant, LocalDateTime}
+import java.time.Instant
 import java.util.{Map => JMap}
 
 import com.xueyingying.datalake.FlinkSuiteBase
 import org.apache.flink.api.common.functions.Partitioner
 import org.apache.flink.configuration.Configuration
+import org.apache.flink.core.fs.Path
 import org.apache.flink.streaming.api.operators.OneInputStreamOperatorFactory
 import org.apache.flink.streaming.api.scala.{DataStream, createTypeInformation}
 import org.apache.flink.table.data.{GenericRowData, RowData, StringData, TimestampData}
@@ -13,16 +14,15 @@ import org.apache.flink.table.runtime.typeutils.InternalTypeInfo
 import org.apache.flink.table.types.logical.{BigIntType, LogicalType, RowType, TimestampType, VarCharType}
 import org.apache.flink.types.{Row, RowKind}
 import org.apache.flink.util.Collector
-import org.apache.hadoop.fs.Path
 import org.apache.hudi.common.config.DFSPropertiesConfiguration
 import org.apache.hudi.common.table.TableSchemaResolver
 import org.apache.hudi.config.metrics.HoodieMetricsConfig
-import org.apache.hudi.configuration.{FlinkOptions, OptionsInference}
+import org.apache.hudi.configuration.{FlinkOptions, HadoopConfigurations, OptionsInference}
 import org.apache.hudi.keygen.constant.KeyGeneratorType
 import org.apache.hudi.sink.utils.Pipelines
 import org.apache.hudi.source.{StreamReadMonitoringFunction, StreamReadOperator}
+import org.apache.hudi.table.format.InternalSchemaManager
 import org.apache.hudi.table.format.mor.{MergeOnReadInputFormat, MergeOnReadInputSplit, MergeOnReadTableState}
-import org.apache.hudi.table.format.{FilePathUtils, InternalSchemaManager}
 import org.apache.hudi.util.{AvroSchemaConverter, StreamerUtil}
 
 import scala.collection.JavaConversions.seqAsJavaList
@@ -34,8 +34,6 @@ import scala.collection.JavaConversions.seqAsJavaList
  */
 class COWTableTest extends FlinkSuiteBase {
   "COW" should "upsert" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
     val dataStream: DataStream[RowData] = rowStream.flatMap[RowData] { (data: Row, out: Collector[RowData]) =>
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)
@@ -78,12 +76,12 @@ class COWTableTest extends FlinkSuiteBase {
     val path = "file:/tmp/t1"
     OptionsInference.setupSourceTasks(flinkConf, env.getParallelism)
     flinkConf.setInteger(FlinkOptions.READ_STREAMING_CHECK_INTERVAL, 10)
-    val metaClient = StreamerUtil.createMetaClient(path, conf)
+    val metaClient = StreamerUtil.createMetaClient(path, HadoopConfigurations.getHadoopConf(flinkConf))
     val schemaResolver = new TableSchemaResolver(metaClient)
     val tableAvroSchema = schemaResolver.getTableAvroSchema
     val tableRowDataType = AvroSchemaConverter.convertToDataType(tableAvroSchema)
     val tableRowType = tableRowDataType.getLogicalType.asInstanceOf[RowType]
-    val monitoringFunction = new StreamReadMonitoringFunction(flinkConf, FilePathUtils.toFlinkPath(new Path(path)), tableRowType, 1 << 30, Option.empty.orNull)
+    val monitoringFunction = new StreamReadMonitoringFunction(flinkConf, new Path(path), tableRowType, 1 << 30, Option.empty.orNull)
     val parallelism = flinkConf.getInteger(FlinkOptions.READ_TASKS)
     val dataStream = env.addSource(monitoringFunction)
       .uid(Pipelines.opUID("split_monitor", flinkConf))

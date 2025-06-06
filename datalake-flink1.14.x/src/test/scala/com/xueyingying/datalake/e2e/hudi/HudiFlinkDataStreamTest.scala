@@ -8,18 +8,14 @@ import com.xueyingying.datalake.FlinkSuiteBase
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.functions.KeySelector
 import org.apache.flink.configuration.Configuration
-import org.apache.flink.streaming.api.datastream.DataStreamSource
-import org.apache.flink.streaming.api.functions.source.InputFormatSourceFunction
 import org.apache.flink.streaming.api.operators.KeyedProcessOperator
 import org.apache.flink.streaming.api.scala.{DataStream, createTypeInformation}
 import org.apache.flink.table.data.{GenericRowData, RowData, StringData, TimestampData}
-import org.apache.flink.table.types.DataType
 import org.apache.flink.table.types.logical.{BigIntType, RowType, TimestampType, VarCharType}
 import org.apache.flink.types.{Row, RowKind}
 import org.apache.flink.util.Collector
 import org.apache.hudi.common.config.DFSPropertiesConfiguration
 import org.apache.hudi.common.model.{HoodieRecord, WriteOperationType}
-import org.apache.hudi.common.table.TableSchemaResolver
 import org.apache.hudi.config.metrics.HoodieMetricsConfig
 import org.apache.hudi.config.{HoodieArchivalConfig, HoodieCompactionConfig}
 import org.apache.hudi.configuration.{FlinkOptions, OptionsInference}
@@ -30,7 +26,7 @@ import org.apache.hudi.sink.compact.{CompactOperator, CompactionCommitEvent, Com
 import org.apache.hudi.sink.partitioner.BucketAssignFunction
 import org.apache.hudi.sink.transform.RowDataToHoodieFunctions
 import org.apache.hudi.sink.utils.Pipelines
-import org.apache.hudi.util.{AvroSchemaConverter, StreamerUtil}
+import org.apache.hudi.util.AvroSchemaConverter
 
 /**
  * @author cx330.1000ly@gmail.com
@@ -39,8 +35,6 @@ import org.apache.hudi.util.{AvroSchemaConverter, StreamerUtil}
  */
 class HudiFlinkDataStreamTest extends FlinkSuiteBase {
   "hudi" should "append" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
     val dataStream: DataStream[RowData] = rowStream.flatMap[RowData] { (data: Row, out: Collector[RowData]) =>
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)
@@ -87,8 +81,6 @@ class HudiFlinkDataStreamTest extends FlinkSuiteBase {
   }
 
   "hudi data stream write" should "work" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
     val rowDataStream: DataStream[RowData] = rowStream.flatMap[RowData] { (data: Row, out: Collector[RowData]) =>
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)
@@ -162,8 +154,6 @@ class HudiFlinkDataStreamTest extends FlinkSuiteBase {
   }
 
   "hudi" should "clean" in {
-    val tableResult = tabEnv.sqlQuery("SELECT id, content, op_ts, CAST(`date` AS STRING) AS `date` FROM datagen")
-    val rowStream: DataStream[Row] = tabEnv.toDataStream(tableResult)
     val dataStream: DataStream[RowData] = rowStream.flatMap[RowData] { (data: Row, out: Collector[RowData]) =>
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)
@@ -187,11 +177,11 @@ class HudiFlinkDataStreamTest extends FlinkSuiteBase {
     flinkConf.set(FlinkOptions.TABLE_TYPE, FlinkOptions.TABLE_TYPE_COPY_ON_WRITE) // cow,mor append模式下没有区别
     flinkConf.set(FlinkOptions.TABLE_NAME, "t1")
 
-/*
-    flinkConf.setString(FlinkOptions.KEYGEN_TYPE, KeyGeneratorType.SIMPLE.name)
-    flinkConf.setString(FlinkOptions.PARTITION_PATH_FIELD, "date")
-    flinkConf.setBoolean(FlinkOptions.HIVE_STYLE_PARTITIONING, true)
-*/
+    /*
+        flinkConf.setString(FlinkOptions.KEYGEN_TYPE, KeyGeneratorType.SIMPLE.name)
+        flinkConf.setString(FlinkOptions.PARTITION_PATH_FIELD, "date")
+        flinkConf.setBoolean(FlinkOptions.HIVE_STYLE_PARTITIONING, true)
+    */
 
     flinkConf.setBoolean(HoodieMetricsConfig.TURN_METRICS_ON.key, true)
 
@@ -202,36 +192,5 @@ class HudiFlinkDataStreamTest extends FlinkSuiteBase {
     Pipelines.cluster(flinkConf, rowType, pipeline)
 
     env.execute
-  }
-
-  "t1" should "read" in {
-    tabEnv.executeSql(
-      s"""
-         |CREATE TABLE t1 (
-         |  _origin_op_ts TIMESTAMP,
-         |  id BIGINT,
-         |  content STRING,
-         |  `date` STRING
-         |)
-         |WITH (
-         |  'connector'='hudi',
-         |  '${FlinkOptions.PATH.key}'='file:/tmp/t1'
-         |)
-      """.stripMargin)
-    tabEnv.executeSql(
-      """
-        |SELECT COUNT(1)
-        |FROM t1
-      """.stripMargin).print()
-  }
-
-  "hudi" should "read" in {
-    val path = "file:/tmp/t1"
-    val metaClient = StreamerUtil.createMetaClient(path, conf)
-    val schemaResolver = new TableSchemaResolver(metaClient)
-    val tableAvroSchema = schemaResolver.getTableAvroSchema
-    val rowDataType = AvroSchemaConverter.convertToDataType(tableAvroSchema)
-    val rowType = rowDataType.getLogicalType.asInstanceOf[RowType]
-
   }
 }
