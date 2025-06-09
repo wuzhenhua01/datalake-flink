@@ -45,13 +45,9 @@
         <log4j2.version>2.17.1</log4j2.version>
 
         <!-- Library Dependency Versions -->
-        <antlr.version>3.5.2</antlr.version>
-        <antlr4.version>4.8</antlr4.version>
-        <arrow.version>0.15.1</arrow.version>
-        <avro.version>1.10.0</avro.version><!-- this version required by hudi -->
+        <avro.version>1.10.0</avro.version>
         <caffeine.version>2.9.1</caffeine.version>
         <dropwizard.metrics.version>4.1.0</dropwizard.metrics.version>
-        <druid.version>1.2.8</druid.version>
         <flink.major.version>1.14</flink.major.version>
         <flink.version>${flink.major.version}.0</flink.version>
         <flink.cdc.version>2.4.1</flink.cdc.version>
@@ -64,13 +60,9 @@
         <hive.version>3.1.0</hive.version>
         <hive.exec.classifier>core</hive.exec.classifier>
         <hive.jdbc.driver.classifier>standalone</hive.jdbc.driver.classifier>
-        <httpclient.version>4.5.13</httpclient.version>
-        <httpcore.version>4.4.13</httpcore.version>
-        <httpclient5.version>5.2.1</httpclient5.version>
         <hudi.version>0.14.1</hudi.version>
         <iceberg.version>1.0.0</iceberg.version>
         <jackson.version>2.12.1</jackson.version>
-        <joda-time.version>2.9.9</joda-time.version>
         <kryo.shaded.version>4.0.2</kryo.shaded.version><!-- Hudi require -->
         <lz4.version>1.8.0</lz4.version>
         <!-- debezium require -->
@@ -85,7 +77,6 @@
         <protobuf.version>3.8.0</protobuf.version>
         <roaring.bitmap.version>0.9.47</roaring.bitmap.version>
         <snappy.version>1.1.8</snappy.version>
-        <zstd.version>1.5.5-10</zstd.version>
 
         <!-- Testing -->
         <junit.jupiter.version>5.7.2</junit.jupiter.version>
@@ -376,10 +367,74 @@
 
             <!-- Hive -->
             <dependency>
+                <groupId>org.apache.hive.shims</groupId>
+                <artifactId>hive-shims-common</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.curator</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive.shims</groupId>
+                <artifactId>hive-shims-0.23</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-common</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.eclipse.jetty</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-serde</artifactId>
+                <version>${hive.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.parquet</groupId>
+                        <artifactId>parquet-hadoop-bundle</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-llap-common</artifactId>
+                <version>${hive.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.hive</groupId>
                 <artifactId>hive-exec</artifactId>
                 <version>${hive.version}</version>
                 <classifier>${hive.exec.classifier}</classifier>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.logging.log4j</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.hive</groupId>
+                <artifactId>hive-standalone-metastore</artifactId>
+                <version>${hive.version}</version>
                 <exclusions>
                     <exclusion>
                         <groupId>org.apache.logging.log4j</groupId>
@@ -472,8 +527,46 @@
 
         <dependency>
             <groupId>org.apache.hive</groupId>
+            <artifactId>hive-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-serde</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-llap-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <classifier>${hive.exec.classifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.curator</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-yarn-registry</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-llap-tez</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.codehaus.groovy</groupId>
+                    <artifactId>groovy-all</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite.avatica</groupId>
+                    <artifactId>avatica</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 
