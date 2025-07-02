@@ -42,7 +42,7 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
     flinkConf.set(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH, Boolean.box(true))
 
     enableSSL(flinkConf)
-    enableMetrics(flinkConf)
+    // enableMetrics(flinkConf)
     // enableHistory(flinkConf)
 
     env = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(flinkConf)
@@ -51,7 +51,7 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
 
     val source = new DataGeneratorSource[Row](new DataGenerator[Row]() {
       private val fieldGenerators = Array(
-        RandomGenerator.intGenerator(0, 9999),
+        RandomGenerator.intGenerator(0, 2),
         RandomGenerator.stringGenerator(10)
       )
 
