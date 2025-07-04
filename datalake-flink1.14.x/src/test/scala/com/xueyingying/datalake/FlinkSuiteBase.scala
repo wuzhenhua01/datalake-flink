@@ -51,7 +51,9 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
 
     val source = new DataGeneratorSource[Row](new DataGenerator[Row]() {
       private val fieldGenerators = Array(
-        RandomGenerator.intGenerator(0, 2),
+        RandomGenerator.longGenerator(0, 2),
+        RandomGenerator.stringGenerator(10),
+        RandomGenerator.stringGenerator(10),
         RandomGenerator.stringGenerator(10)
       )
 
@@ -64,13 +66,12 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
       override def hasNext: Boolean = true
 
       override def next(): Row = {
-        val row = new Row(2)
+        val row = new Row(4)
         for ((fieldGenerator, idx) <- fieldGenerators.zipWithIndex) {
           row.setField(idx, fieldGenerator.next)
         }
         row
       }
-
     }, 1, null)
 
     rowStream = env.addSource(source)

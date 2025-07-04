@@ -38,9 +38,9 @@ class COWTableTest extends FlinkSuiteBase {
       val igenericRowData = new GenericRowData(4)
       igenericRowData.setRowKind(RowKind.INSERT)
       igenericRowData.setField(0, TimestampData.fromEpochMillis(Instant.now().getEpochSecond))
-      igenericRowData.setField(1, data.getField("id"))
-      igenericRowData.setField(2, StringData.fromString(data.getField("content").asInstanceOf[String]))
-      igenericRowData.setField(3, StringData.fromString(data.getField("date").asInstanceOf[String]))
+      igenericRowData.setField(1, data.getField(0))
+      igenericRowData.setField(2, StringData.fromString(data.getField(1).asInstanceOf[String]))
+      igenericRowData.setField(3, StringData.fromString(data.getField(2).asInstanceOf[String]))
       out.collect(igenericRowData)
     }
 

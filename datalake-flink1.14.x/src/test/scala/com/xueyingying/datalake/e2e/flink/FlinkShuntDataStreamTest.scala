@@ -20,8 +20,8 @@ class FlinkShuntDataStreamTest extends FlinkSuiteBase {
     val tagMap: Map[Int, OutputTag[String]] = (for (i <- 0 to 5) yield i -> OutputTag[String](i.toString)) (breakOut)
     val tagStream = rowStream.process(new ProcessFunction[Row, String] {
       override def processElement(data: Row, ctx: ProcessFunction[Row, String]#Context, out: Collector[String]): Unit = {
-        val id = data.getField("id").asInstanceOf[Long]
-        val content = data.getField("content").asInstanceOf[String]
+        val id = data.getField(0).asInstanceOf[Long]
+        val content = data.getField(1).asInstanceOf[String]
 
         val idx = id % 5
         val tag = tagMap(idx.toInt)
