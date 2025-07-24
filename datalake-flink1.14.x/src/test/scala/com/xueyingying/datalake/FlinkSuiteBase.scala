@@ -2,6 +2,7 @@ package com.xueyingying.datalake
 
 import org.apache.flink.api.common.functions.RuntimeContext
 import org.apache.flink.configuration.{Configuration, CoreOptions, GlobalConfiguration, JobManagerOptions, RestOptions, SecurityOptions, StateBackendOptions, TaskManagerOptions, WebOptions}
+import org.apache.flink.runtime.security.{KerberosUtils, SecurityConfiguration, SecurityUtils}
 import org.apache.flink.runtime.state.FunctionInitializationContext
 import org.apache.flink.runtime.state.hashmap.HashMapStateBackend
 import org.apache.flink.streaming.api.CheckpointingMode
@@ -41,6 +42,7 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
     flinkConf.set(StateBackendOptions.LATENCY_TRACK_ENABLED, Boolean.box(true))
     flinkConf.set(ExecutionCheckpointingOptions.ENABLE_CHECKPOINTS_AFTER_TASKS_FINISH, Boolean.box(true))
 
+    enableSecurityKafka(flinkConf)
     enableSSL(flinkConf)
     // enableMetrics(flinkConf)
     // enableHistory(flinkConf)
@@ -75,6 +77,11 @@ trait FlinkSuiteBase extends AnyFlatSpec with BeforeAndAfterAll {
     }, 1, null)
 
     rowStream = env.addSource(source)
+  }
+
+  def enableSecurityKafka(flinkConfig: Configuration): Unit = {
+    flinkConfig.set(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, s"Client,KafkaClient,${KerberosUtils.getDefaultKerberosInitAppEntryName}")
+    SecurityUtils.install(new SecurityConfiguration(flinkConfig))
   }
 
   def enableSSL(flinkConfig: Configuration): Unit = {
